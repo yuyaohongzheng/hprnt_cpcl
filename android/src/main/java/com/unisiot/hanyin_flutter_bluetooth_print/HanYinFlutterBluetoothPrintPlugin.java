@@ -33,8 +33,6 @@ import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import zpSDK.zpSDK.GZIPFrame;
-import zpSDK.zpSDK.zpBluetoothPrinter;
 import static cpcl.PrinterHelper.Print;
 import static cpcl.PrinterHelper.getElectricity;
 import cpcl.IPort;
@@ -55,7 +53,11 @@ public class HanYinFlutterBluetoothPrintPlugin implements FlutterPlugin, MethodC
     private MethodChannel channel;
 
     private Context applicationContext;
-    private Handler handler;
+    Handler handler = new Handler(Looper.getMainLooper()) {
+        public void handleMessage(int msg) {
+            // 处理消息
+        }
+    };
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPlugin.FlutterPluginBinding flutterPluginBinding) {
@@ -70,6 +72,7 @@ public class HanYinFlutterBluetoothPrintPlugin implements FlutterPlugin, MethodC
             String bdAddress = call.argument("BDAddress");
             String url = call.argument("url");
             String width = call.argument("width");
+            String times = call.argument("times") == null ? "1" : call.argument("times");
             String height = call.argument("height");
             OkHttpClient client = new OkHttpClient();
 
@@ -94,103 +97,157 @@ public class HanYinFlutterBluetoothPrintPlugin implements FlutterPlugin, MethodC
                     Bitmap bitmap = BitmapFactory.decodeStream(bitmapStream);
 
                     int newWidth = width == null ? 555 : Integer.parseInt(width);
-                    int newHeight = height == null ? 785 : Integer.parseInt(height);
-                    Bitmap img =Bitmap.createScaledBitmap(bitmap,newWidth,newHeight,false);
-
-                    zpBluetoothPrinter zpSDK = new zpBluetoothPrinter(applicationContext);
-                    boolean connect = zpSDK.connect(bdAddress);
-                    if(connect){
-                        Log.d("hanyin_flutter_bluetooth_print","打印准备了--width:" + newWidth + "---height:" + newHeight);
+                    int newHeight = height == null ? 762 : Integer.parseInt(height);
+                    Bitmap img = Bitmap.createScaledBitmap(bitmap,newWidth,newHeight,false);
+                    try {
+                        int connect = PrinterHelper.portOpenBT(applicationContext, bdAddress);
+                        if(connect == 0){
+                            Log.d("hanyin_flutter_bluetooth_print","打印准备了--width:" + newWidth + "---height:" + newHeight);
 //                        zpSDK.pageSetup(574, 0);
 //                        byte[] b= GZIPFrame.Draw_Page_Bitmap_(img);
 //                        zpSDK.Write(b);
 //
 //                        zpSDK.print(0, 0);
-                        try {
-                            Bitmap bitmapPrint = bitmap;
+                            try {
+                                Bitmap bitmapPrint = img;
 //                            if (isRotate)
 //                                bitmapPrint = Utility.Tobitmap90(bitmapPrint);
-                            bitmapPrint = Utility.Tobitmap(bitmapPrint, 576, Utility.getHeight(576, bitmapPrint.getWidth(), bitmapPrint.getHeight()));
-                            int printImage = PrinterHelper.printBitmap(0, 0, 0, bitmapPrint, 0, false, 0);
-                            Log.d("Print", "printImage: " + printImage);
-                            if (printImage > 0) {
-                                handler.sendEmptyMessage(1);
-                            } else {
+                                bitmapPrint = Utility.Tobitmap(bitmapPrint, 555, Utility.getHeight(555, bitmapPrint.getWidth(), bitmapPrint.getHeight()));
+//                            int printImage = PrinterHelper.printBitmap(0, 0, 0, bitmapPrint, 0, false, 0);
+                                PrinterHelper.printAreaSize("0","0","0","" + bitmapPrint.getHeight(),times);
+                                int printImage = PrinterHelper.printBitmapCPCL(bitmapPrint,0,0,0,0,2);
+                                PrinterHelper.Form();
+                                PrinterHelper.Print();
+                                Log.d("Print", "printImage: " + printImage);
+                                if (printImage > 0) {
+                                    handler.sendEmptyMessage(1);
+                                } else {
+                                    handler.sendEmptyMessage(0);
+                                }
+                            } catch (Exception e) {
                                 handler.sendEmptyMessage(0);
                             }
-                        } catch (Exception e) {
-                            handler.sendEmptyMessage(0);
-                        }
-                        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                zpSDK.disconnect();
-                                result.success("{\"code\":\"0\",\"desc\":\"打印成功\"}");
-                            }
-                        },2000);
+                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        PrinterHelper.portClose();
+                                        result.success("{\"code\":\"0\",\"desc\":\"打印成功\"}");
+                                    } catch (Exception e) {
+                                        result.success("{\"code\":\"0\",\"desc\":\"打印成功\"}");
+                                        Log.d("HPRTSDKSample", (new StringBuilder("Activity_Wifi --> onClickCancel ")).append(e.getMessage()).toString());
+                                    }
+                                }
+                            },2000);
 
-                    }else {
-                        result.success("{\"code\":\"-3\",\"desc\":\"bdAddress:" + bdAddress + "的蓝牙设备连接失败\"}");
+                        } else {
+                            result.success("{\"code\":\"-3\",\"desc\":\"bdAddress:" + bdAddress + "的蓝牙设备连接失败\"}");
+                            try {
+                                PrinterHelper.portClose();
+                            } catch (Exception e) {
+                                Log.d("HPRTSDKSample", e.getMessage().toString());
+                            }
+                        }
+                    } catch (Exception e) {
+                        Log.d("HPRTSDKSample", e.getMessage().toString());
+                        try {
+                            PrinterHelper.portClose();
+                        } catch (Exception e2) {
+                            Log.d("HPRTSDKSample", e2.getMessage().toString());
+                        }
                     }
                 }
             });
 
-        } else if ("printBase64Image".equals(call.method)) {
-            String bdAddress = call.argument("BDAddress");
-            String base64 = call.argument("base64");
-            String width = call.argument("width");
-            String height = call.argument("height");
+//        }
+//        else if ("printBase64Image".equals(call.method)) {
+//            String bdAddress = call.argument("BDAddress");
+//            String base64 = call.argument("base64");
+//            String times = call.argument("times") == null ? "1" : call.argument("times");
+//            String width = call.argument("width");
+//            String height = call.argument("height");
+//
+//            Log.d("hanyin_flutter_bluetooth_print","bdAddress:" + bdAddress + "---base64:" + base64);
+//            if (TextUtils.isEmpty(base64)|| TextUtils.isEmpty(bdAddress)){
+//                result.success("{\"code\":\"-1\",\"desc\":\"base64 或者 设备DBAddress 为空，请确认\"}");
+//            }
+//
+//            try {
+//                Bitmap bitmap = null;
+//                bitmap = base64ToPicture(base64);
+//                int newWidth = width == null ? 555 : Integer.parseInt(width);
+//                int newHeight = height == null ? 785 : Integer.parseInt(height);
+//                Bitmap img = Bitmap.createScaledBitmap(bitmap,newWidth,newHeight,false);
 
-            if (TextUtils.isEmpty(base64)|| TextUtils.isEmpty(bdAddress)){
-                result.success("{\"code\":\"-1\",\"desc\":\"base64 或者 设备DBAddress 为空，请确认\"}");
-            }
+//                zpBluetoothPrinter zpSDK = new zpBluetoothPrinter(applicationContext);
+//                int connect = PrinterHelper.portOpenBT(applicationContext, bdAddress);
+//                boolean connect = zpSDK.connect(bdAddress);
 
-            try {
-                Bitmap bitmap = null;
-                bitmap = base64ToPicture(base64);
-                int newWidth = width == null ? 555 : Integer.parseInt(width);
-                int newHeight = height == null ? 785 : Integer.parseInt(height);
-                Bitmap img = Bitmap.createScaledBitmap(bitmap,newWidth,newHeight,false);
+//                if(connect == 0){
+//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--width:" + width + "---height:" + height);
+//                    PrinterHelper.printAreaSize("0","0","0","" + newHeight,times);
+//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--1");
+//                    int printImageResult = PrinterHelper.printBitmapBase64(base64,0,0,0,2,0);
+//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--2");
+//                    PrinterHelper.Form();
+//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--3");
+//                    PrinterHelper.Print();
 
-                zpBluetoothPrinter zpSDK = new zpBluetoothPrinter(applicationContext);
-                boolean connect = zpSDK.connect(bdAddress);
+//                    PrinterHelper.printAreaSize("0", "200", "200", "500", "1");
+//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--1");
+//                    PrinterHelper.printTextPro(PrinterHelper.TEXT, "SIMSUN.TTF", 24, 24, 0, 0, "SIMSUN.TTF 24 Test");
+//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--2");
+//                    PrinterHelper.printTextPro(PrinterHelper.TEXT, "TT0003M_.TTF", 48, 48, 0, 50, "TT0003M_.TTF 48 Test");
+//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--3");
+//                    PrinterHelper.Form();
+//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--4");
+//                    PrinterHelper.Print();
+//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--5");
 
-                if(connect){
-                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--width:" + newWidth + "---height:" + newHeight);
+//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--printImageResult:" + printImageResult);
+//                    if (printImageResult > 0) {
+//                        handler.sendEmptyMessage(1);
+//                    } else {
+//                        handler.sendEmptyMessage(0);
+//                    }
 //                    zpSDK.pageSetup(574, 0);
 //                    byte[] b= GZIPFrame.Draw_Page_Bitmap_(img);
 //                    zpSDK.Write(b);
 //
 //                    zpSDK.print(0, 0);
-                    try {
-                        Bitmap bitmapPrint = img;
-//                            if (isRotate)
-//                                bitmapPrint = Utility.Tobitmap90(bitmapPrint);
-                        bitmapPrint = Utility.Tobitmap(bitmapPrint, 576, Utility.getHeight(576, bitmapPrint.getWidth(), bitmapPrint.getHeight()));
-                        int printImage = PrinterHelper.printBitmap(0, 0, 0, bitmapPrint, 0, false, 0);
-                        Log.d("Print", "printImage: " + printImage);
-                        if (printImage > 0) {
-                            handler.sendEmptyMessage(1);
-                        } else {
-                            handler.sendEmptyMessage(0);
-                        }
-                    } catch (Exception e) {
-                        handler.sendEmptyMessage(0);
-                    }
-                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            zpSDK.disconnect();
-                            result.success("{\"code\":\"0\",\"desc\":\"打印成功\"}");
-                        }
-                    },2000);
-
-                }else {
-                    result.success("{\"code\":\"-3\",\"desc\":\"bdAddress:" + bdAddress + "的蓝牙设备连接失败\"}");
-                }
-            } catch (Exception e) {
-                result.success("{\"code\":\"-1\",\"desc\":\"base64 或者 设备DBAddress 为空，请确认\"}");
-            }
+//                    try {
+//                        Bitmap bitmapPrint = img;
+////                            if (isRotate)
+////                                bitmapPrint = Utility.Tobitmap90(bitmapPrint);
+////                        bitmapPrint = Utility.Tobitmap(bitmapPrint, 576, Utility.getHeight(576, bitmapPrint.getWidth(), bitmapPrint.getHeight()));
+//                        int printImage = PrinterHelper.printBitmap(0, 0, 0, bitmapPrint, 0, false, 0);
+//                        Log.d("Print", "printImage: " + printImage);
+//                        if (printImage > 0) {
+//                            handler.sendEmptyMessage(1);
+//                        } else {
+//                            handler.sendEmptyMessage(0);
+//                        }
+//                    } catch (Exception e) {
+//                        handler.sendEmptyMessage(0);
+//                    }
+//                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            try {
+//                                PrinterHelper.portClose();
+//                                result.success("{\"code\":\"0\",\"desc\":\"打印成功\"}");
+//                            } catch (Exception e) {
+//                                Log.d("HPRTSDKSample", (new StringBuilder("Activity_Wifi --> onClickCancel ")).append(e.getMessage()).toString());
+//                            }
+//                        }
+//                    },2000);
+//
+//                }else {
+//                    result.success("{\"code\":\"-3\",\"desc\":\"bdAddress:" + bdAddress + "的蓝牙设备连接失败\"}");
+//                }
+//            } catch (Exception e) {
+//                result.success("{\"code\":\"-1\",\"desc\":\"base64 或者 设备DBAddress 为空，请确认\"}");
+//            }
 
 
         } else {
