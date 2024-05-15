@@ -16,6 +16,7 @@ import androidx.annotation.NonNull;
 
 import org.w3c.dom.Text;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -99,6 +100,7 @@ public class HanYinFlutterBluetoothPrintPlugin implements FlutterPlugin, MethodC
                     int newWidth = width == null ? 555 : Integer.parseInt(width);
                     int newHeight = height == null ? 762 : Integer.parseInt(height);
                     Bitmap img = Bitmap.createScaledBitmap(bitmap,newWidth,newHeight,false);
+                    bitmap.recycle();
                     try {
                         int connect = PrinterHelper.portOpenBT(applicationContext, bdAddress);
                         if(connect == 0){
@@ -115,7 +117,7 @@ public class HanYinFlutterBluetoothPrintPlugin implements FlutterPlugin, MethodC
                                 bitmapPrint = Utility.Tobitmap(bitmapPrint, 555, Utility.getHeight(555, bitmapPrint.getWidth(), bitmapPrint.getHeight()));
 //                            int printImage = PrinterHelper.printBitmap(0, 0, 0, bitmapPrint, 0, false, 0);
                                 PrinterHelper.printAreaSize("0","0","0","" + bitmapPrint.getHeight(),times);
-                                int printImage = PrinterHelper.printBitmapCPCL(bitmapPrint,0,0,0,0,2);
+                                int printImage = PrinterHelper.printBitmapCPCL(bitmapPrint,0,0,0,0,0);
                                 PrinterHelper.Form();
                                 PrinterHelper.Print();
                                 Log.d("Print", "printImage: " + printImage);
@@ -159,95 +161,68 @@ public class HanYinFlutterBluetoothPrintPlugin implements FlutterPlugin, MethodC
                 }
             });
 
-//        }
-//        else if ("printBase64Image".equals(call.method)) {
-//            String bdAddress = call.argument("BDAddress");
-//            String base64 = call.argument("base64");
-//            String times = call.argument("times") == null ? "1" : call.argument("times");
-//            String width = call.argument("width");
-//            String height = call.argument("height");
-//
-//            Log.d("hanyin_flutter_bluetooth_print","bdAddress:" + bdAddress + "---base64:" + base64);
-//            if (TextUtils.isEmpty(base64)|| TextUtils.isEmpty(bdAddress)){
-//                result.success("{\"code\":\"-1\",\"desc\":\"base64 或者 设备DBAddress 为空，请确认\"}");
-//            }
-//
-//            try {
-//                Bitmap bitmap = null;
-//                bitmap = base64ToPicture(base64);
-//                int newWidth = width == null ? 555 : Integer.parseInt(width);
-//                int newHeight = height == null ? 785 : Integer.parseInt(height);
-//                Bitmap img = Bitmap.createScaledBitmap(bitmap,newWidth,newHeight,false);
+        } else if ("printBase64Image".equals(call.method)) {
+            String bdAddress = call.argument("BDAddress");
+            String base64 = call.argument("base64");
+            String times = call.argument("times") == null ? "1" : call.argument("times");
+            String width = call.argument("width");
+            String height = call.argument("height");
 
-//                zpBluetoothPrinter zpSDK = new zpBluetoothPrinter(applicationContext);
-//                int connect = PrinterHelper.portOpenBT(applicationContext, bdAddress);
+            Log.d("hanyin_flutter_bluetooth_print","bdAddress:" + bdAddress + "---base64:" + base64);
+            if (TextUtils.isEmpty(base64)|| TextUtils.isEmpty(bdAddress)){
+                result.success("{\"code\":\"-1\",\"desc\":\"base64 或者 设备DBAddress 为空，请确认\"}");
+            }
+
+            try {
+                Bitmap bitmap = null;
+                bitmap = base64ToPicture(base64);
+                int newWidth = width == null ? 555 : Integer.parseInt(width);
+                int newHeight = height == null ? 762 : Integer.parseInt(height);
+                Log.d("hanyin_flutter_bluetooth_print","打印准备了--newWidth"+newWidth);
+                Log.d("hanyin_flutter_bluetooth_print","打印准备了--newHeight"+newHeight);
+                Bitmap img = Bitmap.createScaledBitmap(bitmap,newWidth,newHeight,true);
+                bitmap.recycle();
+
+                int connect = PrinterHelper.portOpenBT(applicationContext, bdAddress);
 //                boolean connect = zpSDK.connect(bdAddress);
 
-//                if(connect == 0){
-//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--width:" + width + "---height:" + height);
-//                    PrinterHelper.printAreaSize("0","0","0","" + newHeight,times);
-//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--1");
-//                    int printImageResult = PrinterHelper.printBitmapBase64(base64,0,0,0,2,0);
-//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--2");
-//                    PrinterHelper.Form();
-//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--3");
-//                    PrinterHelper.Print();
+                if(connect == 0){
+                    Bitmap bitmapPrint = img;
+                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--width:" + width + "---height:" + height);
+                    bitmapPrint = Utility.Tobitmap(bitmapPrint, 555, Utility.getHeight(555, bitmapPrint.getWidth(), bitmapPrint.getHeight()));
+                    PrinterHelper.printAreaSize("0","0","0","" + bitmapPrint.getHeight(),times);
+                    int printImage = PrinterHelper.printBitmapCPCL(bitmapPrint,0,0,0,0,0);
+//                    int printImage = PrinterHelper.printBitmapBase64(base64,0,0,0,0,0);
+                    PrinterHelper.Form();
+                    PrinterHelper.Print();
 
-//                    PrinterHelper.printAreaSize("0", "200", "200", "500", "1");
-//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--1");
-//                    PrinterHelper.printTextPro(PrinterHelper.TEXT, "SIMSUN.TTF", 24, 24, 0, 0, "SIMSUN.TTF 24 Test");
-//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--2");
-//                    PrinterHelper.printTextPro(PrinterHelper.TEXT, "TT0003M_.TTF", 48, 48, 0, 50, "TT0003M_.TTF 48 Test");
-//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--3");
-//                    PrinterHelper.Form();
-//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--4");
-//                    PrinterHelper.Print();
-//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--5");
+                    try {
+                        if (printImage > 0) {
+                            handler.sendEmptyMessage(1);
+                        } else {
+                            handler.sendEmptyMessage(0);
+                        }
+                    } catch (Exception e) {
+                        handler.sendEmptyMessage(0);
+                    }
+                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                PrinterHelper.portClose();
+                                result.success("{\"code\":\"0\",\"desc\":\"打印成功\"}");
+                            } catch (Exception e) {
+                                Log.d("HPRTSDKSample", (new StringBuilder("Activity_Wifi --> onClickCancel ")).append(e.getMessage()).toString());
+                            }
+                        }
+                    },2000);
 
-//                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--printImageResult:" + printImageResult);
-//                    if (printImageResult > 0) {
-//                        handler.sendEmptyMessage(1);
-//                    } else {
-//                        handler.sendEmptyMessage(0);
-//                    }
-//                    zpSDK.pageSetup(574, 0);
-//                    byte[] b= GZIPFrame.Draw_Page_Bitmap_(img);
-//                    zpSDK.Write(b);
-//
-//                    zpSDK.print(0, 0);
-//                    try {
-//                        Bitmap bitmapPrint = img;
-////                            if (isRotate)
-////                                bitmapPrint = Utility.Tobitmap90(bitmapPrint);
-////                        bitmapPrint = Utility.Tobitmap(bitmapPrint, 576, Utility.getHeight(576, bitmapPrint.getWidth(), bitmapPrint.getHeight()));
-//                        int printImage = PrinterHelper.printBitmap(0, 0, 0, bitmapPrint, 0, false, 0);
-//                        Log.d("Print", "printImage: " + printImage);
-//                        if (printImage > 0) {
-//                            handler.sendEmptyMessage(1);
-//                        } else {
-//                            handler.sendEmptyMessage(0);
-//                        }
-//                    } catch (Exception e) {
-//                        handler.sendEmptyMessage(0);
-//                    }
-//                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            try {
-//                                PrinterHelper.portClose();
-//                                result.success("{\"code\":\"0\",\"desc\":\"打印成功\"}");
-//                            } catch (Exception e) {
-//                                Log.d("HPRTSDKSample", (new StringBuilder("Activity_Wifi --> onClickCancel ")).append(e.getMessage()).toString());
-//                            }
-//                        }
-//                    },2000);
-//
-//                }else {
-//                    result.success("{\"code\":\"-3\",\"desc\":\"bdAddress:" + bdAddress + "的蓝牙设备连接失败\"}");
-//                }
-//            } catch (Exception e) {
-//                result.success("{\"code\":\"-1\",\"desc\":\"base64 或者 设备DBAddress 为空，请确认\"}");
-//            }
+                }else {
+                    result.success("{\"code\":\"-3\",\"desc\":\"bdAddress:" + bdAddress + "的蓝牙设备连接失败\"}");
+                }
+            } catch (Exception e) {
+                result.success("{\"code\":\"-1\",\"desc\":\"base64 或者 设备DBAddress 为空，请确认\"}");
+            }
 
 
         } else {
@@ -274,8 +249,40 @@ public class HanYinFlutterBluetoothPrintPlugin implements FlutterPlugin, MethodC
         }
         //解码开始
         byte[] decode = Base64.decode(imgBase64, Base64.DEFAULT);
+
+        Log.d("hanyin_flutter_bluetooth_print","打印准备了--14" + imgBase64);
         Bitmap bitmap = BitmapFactory.decodeByteArray(decode, 0, decode.length);
         return bitmap;
+//        Bitmap bitmap = null;
+//
+//        byte[] imgByte = null;
+//        InputStream input = null;
+//        try{
+//            if (picStrInMsg.contains(",")) {
+//                picStrInMsg = picStrInMsg.split(",")[1];
+//            }
+//            imgByte = Base64.decode(picStrInMsg, Base64.DEFAULT);
+//            BitmapFactory.Options options=new BitmapFactory.Options();
+//            options.inSampleSize = 8;
+//            input = new ByteArrayInputStream(imgByte);
+//            SoftReference softRef = new SoftReference(BitmapFactory.decodeStream(input, null, options));
+//            bitmap = (Bitmap)softRef.get();
+//        }catch(Exception e){
+//            e.printStackTrace();
+//        }finally{
+//            if(imgByte!=null){
+//                imgByte = null;
+//            }
+//
+//            if(input!=null){
+//                try {
+//                    input.close();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
+//        return bitmap;
     }
 
 }
