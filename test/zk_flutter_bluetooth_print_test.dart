@@ -16,6 +16,18 @@ class MockhanyinFlutterBluetoothPrintPlatform
     // TODO: implement printBase64Image
     throw UnimplementedError();
   }
+
+  @override
+  Future<String?> connect(Map params) {
+    // TODO: implement connect
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<String?> disConnect() {
+    // TODO: implement disConnect
+    throw UnimplementedError();
+  }
 }
 
 void main() {

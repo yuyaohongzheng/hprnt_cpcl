@@ -68,6 +68,27 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  connect() async {
+    try {
+      Map params = {
+        "BDAddress": "60:6E:41:35:59:8D",
+      };
+      var result = await _hanyinFlutterBluetoothPrintPlugin.connect(params);
+      print('result----$result');
+    } on PlatformException {
+      print('Failed to connect.');
+    }
+  }
+
+  disConnect() async {
+    try {
+      var result = await _hanyinFlutterBluetoothPrintPlugin.disConnect();
+      print('result----$result');
+    } on PlatformException {
+      print('Failed to disConnect.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -81,6 +102,12 @@ class _MyAppState extends State<MyApp> {
               Text('Running on: $_platformVersion\n'),
               TextButton(
                 onPressed: () {
+                  connect();
+                },
+                child: const Text('连接打印机'),
+              ),
+              TextButton(
+                onPressed: () {
                   printImg();
                 },
                 child: const Text('打印'),
@@ -90,6 +117,12 @@ class _MyAppState extends State<MyApp> {
                   printBase64Img();
                 },
                 child: const Text('打印base64'),
+              ),
+              TextButton(
+                onPressed: () {
+                  disConnect();
+                },
+                child: const Text('断开连接'),
               ),
             ],
           ),

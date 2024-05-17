@@ -23,6 +23,14 @@ abstract class hanyinFlutterBluetoothPrintPlatform extends PlatformInterface {
     _instance = instance;
   }
 
+  Future<String?> connect(Map params) {
+    throw UnimplementedError('connect() has not been implemented.');
+  }
+
+  Future<String?> disConnect() {
+    throw UnimplementedError('disConnect() has not been implemented.');
+  }
+
   Future<String?> printImage(Map params) {
     throw UnimplementedError('printImage() has not been implemented.');
   }

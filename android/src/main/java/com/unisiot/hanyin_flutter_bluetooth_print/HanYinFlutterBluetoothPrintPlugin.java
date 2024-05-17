@@ -69,18 +69,58 @@ public class HanYinFlutterBluetoothPrintPlugin implements FlutterPlugin, MethodC
 
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
-        if ("printImage".equals(call.method)) {
+        if ("connect".equals(call.method)) {
             String bdAddress = call.argument("BDAddress");
+
+            Log.d("hanyin_flutter_bluetooth_print","bd addres =="+bdAddress);
+
+            int connect = -1;
+            try {
+                connect = PrinterHelper.portOpenBT(applicationContext, bdAddress);
+            } catch (Exception e) {
+                result.success("{\"code\":\""+ connect + "\",\"desc\":\"bdAddress:" + bdAddress + "的蓝牙设备连接失败\"}");
+                Log.d("HPRTSDKSample", e.getMessage().toString());
+            }
+            int connectStatus = connect;
+            if(connectStatus == 0){
+                Log.d("hanyin_flutter_bluetooth_print","打印机连接上了");
+                result.success("{\"code\":\"0\",\"desc\":\"bdAddress:" + bdAddress + "的蓝牙设备连接成功\"}");
+            } else {
+                Log.d("hanyin_flutter_bluetooth_print","打印机连接失败--" + connectStatus);
+                result.success("{\"code\":\""+ connectStatus + "\",\"desc\":\"bdAddress:" + bdAddress + "的蓝牙设备连接失败\"}");
+            }
+        } else if ("printImage".equals(call.method)) {
+            // 该接口不是实时指令，打印机正在打印时，查询无效
+            int status = 0;
+            try {
+                status = PrinterHelper.getPrinterStatus();
+            } catch (Exception e) {
+                result.success("{\"code\":\"-1\",\"desc\":\"打印机状态获取失败\"}");
+                Log.d("HPRTSDKSample", e.getMessage().toString());
+                return;
+            }
+            if((status & 2) == 2){
+                //缺纸
+                result.success("{\"code\":\"-1\",\"desc\":\"打印机缺纸或连接失败\"}");
+                Log.d("hanyin_flutter_bluetooth_print","打印机缺纸或连接失败");
+                return;
+            } else if ((status & 4) == 4){
+                //开盖
+                result.success("{\"code\":\"-1\",\"desc\":\"打印机开盖\"}");
+                Log.d("hanyin_flutter_bluetooth_print","打印机开盖");
+                return;
+            }
             String url = call.argument("url");
             String width = call.argument("width");
             String times = call.argument("times") == null ? "1" : call.argument("times");
             String height = call.argument("height");
             OkHttpClient client = new OkHttpClient();
 
-            if (TextUtils.isEmpty(url)|| TextUtils.isEmpty(bdAddress)){
-                result.success("{\"code\":\"-1\",\"desc\":\"url 或者 设备DBAddress 为空，请确认\"}");
+            if (TextUtils.isEmpty(url)){
+                result.success("{\"code\":\"-1\",\"desc\":\"url为空，请确认\"}");
+                return;
             }
-            Log.d("hanyin_flutter_bluetooth_print","bd addres =="+bdAddress+"===url==="+url);
+            Log.d("hanyin_flutter_bluetooth_print", "===url==="+url);
             Request request = new Request.Builder().url(url).build();
             client.newCall(request).enqueue(new Callback() {
                 @Override
@@ -102,75 +142,62 @@ public class HanYinFlutterBluetoothPrintPlugin implements FlutterPlugin, MethodC
                     Bitmap img = Bitmap.createScaledBitmap(bitmap,newWidth,newHeight,false);
                     bitmap.recycle();
                     try {
-                        int connect = PrinterHelper.portOpenBT(applicationContext, bdAddress);
-                        if(connect == 0){
-                            Log.d("hanyin_flutter_bluetooth_print","打印准备了--width:" + newWidth + "---height:" + newHeight);
-//                        zpSDK.pageSetup(574, 0);
-//                        byte[] b= GZIPFrame.Draw_Page_Bitmap_(img);
-//                        zpSDK.Write(b);
-//
-//                        zpSDK.print(0, 0);
-                            try {
-                                Bitmap bitmapPrint = img;
-//                            if (isRotate)
-//                                bitmapPrint = Utility.Tobitmap90(bitmapPrint);
-                                bitmapPrint = Utility.Tobitmap(bitmapPrint, 555, Utility.getHeight(555, bitmapPrint.getWidth(), bitmapPrint.getHeight()));
-//                            int printImage = PrinterHelper.printBitmap(0, 0, 0, bitmapPrint, 0, false, 0);
-                                PrinterHelper.printAreaSize("0","0","0","" + bitmapPrint.getHeight(),times);
-                                int printImage = PrinterHelper.printBitmapCPCL(bitmapPrint,0,0,0,0,0);
-                                PrinterHelper.Form();
-                                PrinterHelper.Print();
-                                Log.d("Print", "printImage: " + printImage);
-                                if (printImage > 0) {
-                                    handler.sendEmptyMessage(1);
-                                } else {
-                                    handler.sendEmptyMessage(0);
-                                }
-                            } catch (Exception e) {
-                                handler.sendEmptyMessage(0);
+                        Log.d("hanyin_flutter_bluetooth_print","打印准备了--width:" + newWidth + "---height:" + newHeight);
+                        try {
+                            Bitmap bitmapPrint = img;
+                            bitmapPrint = Utility.Tobitmap(bitmapPrint, 555, Utility.getHeight(555, bitmapPrint.getWidth(), bitmapPrint.getHeight()));
+                            PrinterHelper.printAreaSize("0","0","0","" + bitmapPrint.getHeight(),times);
+                            int printImage = PrinterHelper.printBitmapCPCL(bitmapPrint,0,0,0,0,0);
+                            PrinterHelper.Form();
+                            PrinterHelper.Print();
+                            Log.d("Print", "printImage: " + printImage);
+                            if (printImage > 0) {
+                                result.success("{\"code\":\"0\",\"desc\":\"打印成功\"}");
+                                Log.d("HPRTSDKSample", "打印成功-printImage" + printImage);
+                            } else {
+                                result.success("{\"code\":\""+printImage+"\",\"desc\":\"打印失败\"}");
+                                Log.d("HPRTSDKSample", "打印失败-printImage" + printImage);
                             }
-                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                                @Override
-                                public void run() {
-                                    try {
-                                        PrinterHelper.portClose();
-                                        result.success("{\"code\":\"0\",\"desc\":\"打印成功\"}");
-                                    } catch (Exception e) {
-                                        result.success("{\"code\":\"0\",\"desc\":\"打印成功\"}");
-                                        Log.d("HPRTSDKSample", (new StringBuilder("Activity_Wifi --> onClickCancel ")).append(e.getMessage()).toString());
-                                    }
-                                }
-                            },2000);
-
-                        } else {
-                            result.success("{\"code\":\"-3\",\"desc\":\"bdAddress:" + bdAddress + "的蓝牙设备连接失败\"}");
-                            try {
-                                PrinterHelper.portClose();
-                            } catch (Exception e) {
-                                Log.d("HPRTSDKSample", e.getMessage().toString());
-                            }
+                        } catch (Exception e) {
+                            Log.d("HPRTSDKSample", "打印失败-" + e.getMessage().toString());
+                            result.success("{\"code\":\"-1\",\"desc\":\"打印失败\"}");
                         }
                     } catch (Exception e) {
                         Log.d("HPRTSDKSample", e.getMessage().toString());
-                        try {
-                            PrinterHelper.portClose();
-                        } catch (Exception e2) {
-                            Log.d("HPRTSDKSample", e2.getMessage().toString());
-                        }
                     }
                 }
             });
 
         } else if ("printBase64Image".equals(call.method)) {
-            String bdAddress = call.argument("BDAddress");
+            // 该接口不是实时指令，打印机正在打印时，查询无效
+            int status = 0;
+            try {
+                status = PrinterHelper.getPrinterStatus();
+            } catch (Exception e) {
+                result.success("{\"code\":\"-1\",\"desc\":\"打印机状态获取失败\"}");
+                Log.d("HPRTSDKSample", e.getMessage().toString());
+                return;
+            }
+            if((status & 2) == 2){
+                //缺纸
+                result.success("{\"code\":\"-1\",\"desc\":\"打印机缺纸或连接失败\"}");
+                Log.d("hanyin_flutter_bluetooth_print","打印机缺纸或连接失败");
+                return;
+            } else if ((status & 4) == 4){
+                //开盖
+                result.success("{\"code\":\"-1\",\"desc\":\"打印机开盖\"}");
+                Log.d("hanyin_flutter_bluetooth_print","打印机开盖");
+                return;
+            }
             String base64 = call.argument("base64");
             String times = call.argument("times") == null ? "1" : call.argument("times");
             String width = call.argument("width");
             String height = call.argument("height");
 
-            Log.d("hanyin_flutter_bluetooth_print","bdAddress:" + bdAddress + "---base64:" + base64);
-            if (TextUtils.isEmpty(base64)|| TextUtils.isEmpty(bdAddress)){
-                result.success("{\"code\":\"-1\",\"desc\":\"base64 或者 设备DBAddress 为空，请确认\"}");
+            Log.d("hanyin_flutter_bluetooth_print","base64:" + base64);
+            if (TextUtils.isEmpty(base64)){
+                result.success("{\"code\":\"-1\",\"desc\":\"base64为空，请确认\"}");
+                return;
             }
 
             try {
@@ -183,48 +210,44 @@ public class HanYinFlutterBluetoothPrintPlugin implements FlutterPlugin, MethodC
                 Bitmap img = Bitmap.createScaledBitmap(bitmap,newWidth,newHeight,true);
                 bitmap.recycle();
 
-                int connect = PrinterHelper.portOpenBT(applicationContext, bdAddress);
-//                boolean connect = zpSDK.connect(bdAddress);
+                Bitmap bitmapPrint = img;
+                Log.d("hanyin_flutter_bluetooth_print","打印准备了--width:" + width + "---height:" + height);
+                bitmapPrint = Utility.Tobitmap(bitmapPrint, 555, Utility.getHeight(555, bitmapPrint.getWidth(), bitmapPrint.getHeight()));
+                PrinterHelper.printAreaSize("0","0","0","" + bitmapPrint.getHeight(),times);
+                int printImage = PrinterHelper.printBitmapCPCL(bitmapPrint,0,0,0,0,0);
+                PrinterHelper.Form();
+                PrinterHelper.Print();
 
-                if(connect == 0){
-                    Bitmap bitmapPrint = img;
-                    Log.d("hanyin_flutter_bluetooth_print","打印准备了--width:" + width + "---height:" + height);
-                    bitmapPrint = Utility.Tobitmap(bitmapPrint, 555, Utility.getHeight(555, bitmapPrint.getWidth(), bitmapPrint.getHeight()));
-                    PrinterHelper.printAreaSize("0","0","0","" + bitmapPrint.getHeight(),times);
-                    int printImage = PrinterHelper.printBitmapCPCL(bitmapPrint,0,0,0,0,0);
-//                    int printImage = PrinterHelper.printBitmapBase64(base64,0,0,0,0,0);
-                    PrinterHelper.Form();
-                    PrinterHelper.Print();
-
-                    try {
-                        if (printImage > 0) {
-                            handler.sendEmptyMessage(1);
-                        } else {
-                            handler.sendEmptyMessage(0);
-                        }
-                    } catch (Exception e) {
-                        handler.sendEmptyMessage(0);
+                try {
+                    if (printImage > 0) {
+                        result.success("{\"code\":\"0\",\"desc\":\"打印成功\"}");
+                        Log.d("HPRTSDKSample", "打印成功-printImage" + printImage);
+                    } else {
+                        result.success("{\"code\":\""+printImage+"\",\"desc\":\"打印失败\"}");
+                        Log.d("HPRTSDKSample", "打印失败-printImage" + printImage);
                     }
-                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                PrinterHelper.portClose();
-                                result.success("{\"code\":\"0\",\"desc\":\"打印成功\"}");
-                            } catch (Exception e) {
-                                Log.d("HPRTSDKSample", (new StringBuilder("Activity_Wifi --> onClickCancel ")).append(e.getMessage()).toString());
-                            }
-                        }
-                    },2000);
-
-                }else {
-                    result.success("{\"code\":\"-3\",\"desc\":\"bdAddress:" + bdAddress + "的蓝牙设备连接失败\"}");
+                } catch (Exception e) {
+                    Log.d("HPRTSDKSample", "打印失败-" + e.getMessage().toString());
+                    result.success("{\"code\":\"-1\",\"desc\":\"打印失败\"}");
                 }
             } catch (Exception e) {
-                result.success("{\"code\":\"-1\",\"desc\":\"base64 或者 设备DBAddress 为空，请确认\"}");
+                Log.d("HPRTSDKSample", "打印失败，请重试或检测打印机状态");
+                result.success("{\"code\":\"-1\",\"desc\":\"打印失败，请重试或检测打印机状态\"}");
             }
-
-
+        } else if ("disConnect".equals(call.method)) {
+            try {
+                boolean disconnect = PrinterHelper.portClose();
+                if (disconnect) {
+                    result.success("{\"code\":\"0\",\"desc\":\"断开连接成功\"}");
+                    Log.d("HPRTSDKSample", "断开连接成功");
+                } else {
+                    result.success("{\"code\":\"-1\",\"desc\":\"断开连接失败\"}");
+                    Log.d("HPRTSDKSample", "断开连接失败");
+                }
+            } catch (Exception e) {
+                result.success("{\"code\":\"-1\",\"desc\":\""+ e.getMessage().toString() +"\"}");
+                Log.d("HPRTSDKSample", e.getMessage().toString());
+            }
         } else {
             result.notImplemented();
         }

@@ -10,6 +10,18 @@ class MethodChannelhanyinFlutterBluetoothPrint extends hanyinFlutterBluetoothPri
   final methodChannel = const MethodChannel('hanyin_flutter_bluetooth_print');
 
   @override
+  Future<String?> connect(Map params) async {
+    final result = await methodChannel.invokeMethod<String>('connect', params);
+    return result;
+  }
+
+  @override
+  Future<String?> disConnect() async {
+    final result = await methodChannel.invokeMethod<String>('disConnect');
+    return result;
+  }
+
+  @override
   Future<String?> printImage(Map params) async {
     final result = await methodChannel.invokeMethod<String>('printImage', params);
     return result;
