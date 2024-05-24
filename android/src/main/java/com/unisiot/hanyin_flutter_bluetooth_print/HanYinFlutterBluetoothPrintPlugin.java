@@ -91,25 +91,25 @@ public class HanYinFlutterBluetoothPrintPlugin implements FlutterPlugin, MethodC
             }
         } else if ("printImage".equals(call.method)) {
             // 该接口不是实时指令，打印机正在打印时，查询无效
-            int status = 0;
-            try {
-                status = PrinterHelper.getPrinterStatus();
-            } catch (Exception e) {
-                result.success("{\"code\":\"-1\",\"desc\":\"打印机状态获取失败\"}");
-                Log.d("HPRTSDKSample", e.getMessage().toString());
-                return;
-            }
-            if((status & 2) == 2){
-                //缺纸
-                result.success("{\"code\":\"-1\",\"desc\":\"打印机缺纸或连接失败\"}");
-                Log.d("hanyin_flutter_bluetooth_print","打印机缺纸或连接失败");
-                return;
-            } else if ((status & 4) == 4){
-                //开盖
-                result.success("{\"code\":\"-1\",\"desc\":\"打印机开盖\"}");
-                Log.d("hanyin_flutter_bluetooth_print","打印机开盖");
-                return;
-            }
+//            int status = 0;
+//            try {
+//                status = PrinterHelper.getPrinterStatus();
+//            } catch (Exception e) {
+//                result.success("{\"code\":\"-1\",\"desc\":\"打印机状态获取失败\"}");
+//                Log.d("HPRTSDKSample", e.getMessage().toString());
+//                return;
+//            }
+//            if((status & 2) == 2){
+//                //缺纸
+//                result.success("{\"code\":\"-1\",\"desc\":\"打印机缺纸或连接失败\"}");
+//                Log.d("hanyin_flutter_bluetooth_print","打印机缺纸或连接失败");
+//                return;
+//            } else if ((status & 4) == 4){
+//                //开盖
+//                result.success("{\"code\":\"-1\",\"desc\":\"打印机开盖\"}");
+//                Log.d("hanyin_flutter_bluetooth_print","打印机开盖");
+//                return;
+//            }
             String url = call.argument("url");
             String width = call.argument("width");
             String times = call.argument("times") == null ? "1" : call.argument("times");
@@ -170,25 +170,25 @@ public class HanYinFlutterBluetoothPrintPlugin implements FlutterPlugin, MethodC
 
         } else if ("printBase64Image".equals(call.method)) {
             // 该接口不是实时指令，打印机正在打印时，查询无效
-            int status = 0;
-            try {
-                status = PrinterHelper.getPrinterStatus();
-            } catch (Exception e) {
-                result.success("{\"code\":\"-1\",\"desc\":\"打印机状态获取失败\"}");
-                Log.d("HPRTSDKSample", e.getMessage().toString());
-                return;
-            }
-            if((status & 2) == 2){
-                //缺纸
-                result.success("{\"code\":\"-1\",\"desc\":\"打印机缺纸或连接失败\"}");
-                Log.d("hanyin_flutter_bluetooth_print","打印机缺纸或连接失败");
-                return;
-            } else if ((status & 4) == 4){
-                //开盖
-                result.success("{\"code\":\"-1\",\"desc\":\"打印机开盖\"}");
-                Log.d("hanyin_flutter_bluetooth_print","打印机开盖");
-                return;
-            }
+//            int status = 0;
+//            try {
+//                status = PrinterHelper.getPrinterStatus();
+//            } catch (Exception e) {
+//                result.success("{\"code\":\"-1\",\"desc\":\"打印机状态获取失败\"}");
+//                Log.d("HPRTSDKSample", e.getMessage().toString());
+//                return;
+//            }
+//            if((status & 2) == 2){
+//                //缺纸
+//                result.success("{\"code\":\"-1\",\"desc\":\"打印机缺纸或连接失败\"}");
+//                Log.d("hanyin_flutter_bluetooth_print","打印机缺纸或连接失败");
+//                return;
+//            } else if ((status & 4) == 4){
+//                //开盖
+//                result.success("{\"code\":\"-1\",\"desc\":\"打印机开盖\"}");
+//                Log.d("hanyin_flutter_bluetooth_print","打印机开盖");
+//                return;
+//            }
             String base64 = call.argument("base64");
             String times = call.argument("times") == null ? "1" : call.argument("times");
             String width = call.argument("width");
