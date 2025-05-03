@@ -34,6 +34,8 @@ rootProject.allprojects {
 apply plugin: 'com.android.library'
 
 android {
+
+    namespace 'com.unisiot.hanyin_flutter_bluetooth_print'
     compileSdkVersion 31
 
     compileOptions {
@@ -52,10 +54,6 @@ android {
 //             }
 //
 //    }
-
-
-
-
 
     dependencies {
         implementation fileTree(include: ['*.jar', '*.aar'], dir: 'libs')

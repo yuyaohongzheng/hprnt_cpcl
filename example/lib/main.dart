@@ -30,7 +30,7 @@ class _MyAppState extends State<MyApp> {
       Map params = {
         // "BDAddress": "00:32:69:05:87:97",
         // "BDAddress": "60:6E:41:6C:10:34",
-        "BDAddress": "60:6E:41:35:59:8D",
+        "BDAddress": "10:23:81:4D:68:52",
         // "width": "574",
         // "height": "982",
         "width": "555",
