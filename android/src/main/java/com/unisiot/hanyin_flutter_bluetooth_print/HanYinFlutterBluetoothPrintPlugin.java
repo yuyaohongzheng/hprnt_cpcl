@@ -34,6 +34,9 @@ import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.RequestBody;
+import okhttp3.MediaType;
+
 import static cpcl.PrinterHelper.Print;
 import static cpcl.PrinterHelper.getElectricity;
 import cpcl.IPort;
@@ -121,21 +124,68 @@ public class HanYinFlutterBluetoothPrintPlugin implements FlutterPlugin, MethodC
                 return;
             }
             Log.d("hanyin_flutter_bluetooth_print", "===url==="+url);
-            Request request = new Request.Builder().url(url).build();
+
+            Request request;
+
+            if(call.argument("protocol") !=null && "post".equals(call.argument("protocol").toString())){
+                Log.d("flutter_bluetooth_print", "post");
+                Log.d("token:", "*"+ call.argument("token").toString() + "*");
+
+                MediaType JSON = MediaType.get("application/json; charset=utf-8");
+                String json = call.argument("request").toString();
+                RequestBody body = RequestBody.create(json, JSON);
+
+                request = new Request.Builder()
+                       .url(url)
+                       .post(body)
+                       .addHeader("Content-Type", "application/json")
+                       .addHeader("Authorization", "Bearer " + call.argument("token").toString())
+                       .build();
+
+            } else {
+               Log.d("okHttp protocol",call.argument("protocol"));
+                request = new Request.Builder()
+                        .url(url)
+                        .build();
+            }
+
             client.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                    Log.d("hanyin_flutter_bluetooth_print", e.toString());
                     result.success("{\"code\":\"-2\",\"desc\":\"下载图片失败，请确认\"}");
                 }
 
                 @Override
                 public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+
                     if (null == response.body()){
-                        result.success("{\"code\":\"-2\",\"desc\":\"图片数据流为空，请确认\"}");
+                        result.success("{\"code\":\"-2\",\"desc\":\"返回Body数据流为空，请确认\"}");
                         return;
                     }
+
+                    String contentType = response.header("Content-Type");
+                    Log.d("Content-Type: ", contentType);
+
+                    if(!"image/png".equals(contentType)){
+                        result.success("{\"code\":\"-1\",\"desc\":\"服务端错误，请确认检查\"}");
+                        return;
+                    }
+
+                    //String contentType = response.headers["content-type"];
+                    //Log.d("Response:", contentType);
+
                     InputStream bitmapStream = response.body().byteStream();
+                    if (null == bitmapStream){
+                        result.success("{\"code\":\"-4\",\"desc\":\"图片数据流为空，请确认\"}");
+                        return;
+                    }
+
                     Bitmap bitmap = BitmapFactory.decodeStream(bitmapStream);
+                    if (null == bitmap){
+                        result.success("{\"code\":\"-8\",\"desc\":\"图片数据为空，请确认\"}");
+                        return;
+                    }
 
                     int newWidth = width == null ? 555 : Integer.parseInt(width);
                     int newHeight = height == null ? 762 : Integer.parseInt(height);
@@ -165,6 +215,8 @@ public class HanYinFlutterBluetoothPrintPlugin implements FlutterPlugin, MethodC
                     } catch (Exception e) {
                         Log.d("HPRTSDKSample", e.getMessage().toString());
                     }
+
+
                 }
             });
 
