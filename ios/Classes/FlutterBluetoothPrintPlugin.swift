@@ -1,7 +1,7 @@
 import Flutter
 import UIKit
 
-public class hanyinFlutterBluetoothPrintPlugin: NSObject, FlutterPlugin {
+public class HanYinFlutterBluetoothPrintPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "hanyin_flutter_bluetooth_print", binaryMessenger: registrar.messenger())
     let instance = hanyinFlutterBluetoothPrintPlugin()
