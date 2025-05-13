@@ -37,8 +37,8 @@ flutter:
       android:
         package: com.unisiot.hanyin_flutter_bluetooth_print
         pluginClass: HanYinFlutterBluetoothPrintPlugin
-      ios:
-        pluginClass: HanYinFlutterBluetoothPrintPlugin
+    # ios:
+    #   pluginClass: HanYinFlutterBluetoothPrintPlugin
 
   # To add assets to your plugin package, add an assets section, like this:
   # assets:
